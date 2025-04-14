@@ -2,27 +2,27 @@
 	"schemaVersion": 1,
 	"id": "uo-utils",
 	"version": "${version}",
-	"name": "Ultimate Origins' Ultility Mod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"name": "Ultimate Origins' Utility Mod",
+	"description": "Utility Mod made for use with the Ultimate Origins Modpack.",
 	"authors": [
 		"Me!"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"sources": "https://github.com/lazul1ne/Ultimate-Origins-Utility-Mod"
 	},
 	"license": "CC0-1.0",
 	"icon": "assets/uo-utils/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"xyz.lazuline.UltimateOriginsUltilityMod"
+			"xyz.lazuline.UltimateOriginsUtilityMod"
 		],
 		"client": [
-			"xyz.lazuline.UltimateOriginsUltilityModClient"
+			"xyz.lazuline.UltimateOriginsUtilityModClient"
 		],
 		"fabric-datagen": [
-			"xyz.lazuline.UltimateOriginsUltilityModDataGenerator"
+			"xyz.lazuline.UltimateOriginsUtilityModDataGenerator"
 		]
 	},
 	"mixins": [
