@@ -21,7 +21,7 @@ import java.util.Map;
 
 public class InventoryUtils {
     private static final Gson GSON = new Gson();
-    private static final String CONFIG_FILE = "config/uo-utils.json";
+    private static final String CONFIG_FILE = "config/uo-utils-items.json";
     private static Map<String, String> itemMap = Collections.emptyMap();
 
     // Loads the config file, makes a new one if it cant find it.

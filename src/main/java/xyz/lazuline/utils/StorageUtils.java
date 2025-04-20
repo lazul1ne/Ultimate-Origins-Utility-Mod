@@ -41,11 +41,10 @@ public class StorageUtils {
 
         int viewDistance = world.getServer().getPlayerManager().getViewDistance();
 
-        UltimateOriginsUtilityMod.LOGGER.info(String.format(
-                "Processing chunks around player %s at position (x=%d, z=%d) [chunk: %d, %d] with view distance %d",
+        UltimateOriginsUtilityMod.LOGGER.info(
+                "Processing chunks around player {} at position (x={}, z={}) [chunk: {}, {}] with view distance {}",
                 player.getName().getString(), playerX, playerZ, playerChunkX, playerChunkZ, viewDistance
-        ));
-
+        );
         AtomicInteger inventoriesProcessed = new AtomicInteger();
         AtomicInteger inventoriesModified = new AtomicInteger();
 
