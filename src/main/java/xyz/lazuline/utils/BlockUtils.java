@@ -15,6 +15,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.WorldChunk;
 import xyz.lazuline.UltimateOriginsUtilityMod;
 
@@ -24,7 +25,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class BlockUtils {
     private static final String CONFIG_PATH = "config/uo-block-replace.json";
@@ -48,8 +49,9 @@ public class BlockUtils {
             }
 
             Map<String, String> sample = new HashMap<>();
-            sample.put("minecraft:chest", "minecraft:barrel");
-            sample.put("minecraft:shulker_box", "minecraft:ender_chest");
+            // Default mappings example
+            sample.put("modid:modded_chest", "minecraft:chest");
+            sample.put("minecraft:trapped_chest", "minecraft:chest");
 
             try (FileWriter writer = new FileWriter(file)) {
                 GSON.toJson(sample, writer);
@@ -90,16 +92,55 @@ public class BlockUtils {
         }
 
         ServerWorld world = player.getServerWorld();
-        int playerChunkX = player.getBlockPos().getX() >> 4;
-        int playerChunkZ = player.getBlockPos().getZ() >> 4;
+
+        // Player position calculations
+        int playerX = player.getBlockPos().getX();
+        int playerZ = player.getBlockPos().getZ();
+        int playerChunkX = playerX >> 4;
+        int playerChunkZ = playerZ >> 4;
         int viewDistance = world.getServer().getPlayerManager().getViewDistance();
 
-        UltimateOriginsUtilityMod.LOGGER.info(String.format(
-                "Processing blocks around player %s at chunk position (%d, %d) with view distance %d",
-                player.getName().getString(), playerChunkX, playerChunkZ, viewDistance
-        ));
+        UltimateOriginsUtilityMod.LOGGER.info(
+                "Processing blocks around player {} at position (x={}, z={}) [chunk: {}, {}] with view distance {}",
+                player.getName().getString(), playerX, playerZ, playerChunkX, playerChunkZ, viewDistance
+        );
+        AtomicInteger blocksProcessed = new AtomicInteger();
+        AtomicInteger chunksProcessed = new AtomicInteger();
+        AtomicInteger blocksReplaced = new AtomicInteger();
 
-        processChunksInRange(world, playerChunkX, playerChunkZ, viewDistance, true);
+        // Process chunks in player's view distance
+        for (int dx = -viewDistance; dx <= viewDistance; dx++) {
+            for (int dz = -viewDistance; dz <= viewDistance; dz++) {
+                int targetChunkX = playerChunkX + dx;
+                int targetChunkZ = playerChunkZ + dz;
+
+                // Skip chunks outside of render distance
+                if (dx * dx + dz * dz > viewDistance * viewDistance) {
+                    continue;
+                }
+
+                WorldChunk chunk = world.getChunk(targetChunkX, targetChunkZ);
+                if (chunk != null && chunk.getStatus() == ChunkStatus.FULL) {
+                    chunksProcessed.incrementAndGet();
+
+                    // Process block entities first
+                    chunk.getBlockEntities().forEach((pos, be) -> {
+                        blocksProcessed.incrementAndGet();
+                        if (processBlock(world, pos)) {
+                            blocksReplaced.incrementAndGet();
+                        }
+                    });
+
+                    // Scan chunk for target blocks
+                    processBlocksInChunk(world, chunk, blocksProcessed, blocksReplaced);
+                }
+            }
+        }
+
+        UltimateOriginsUtilityMod.LOGGER.info(String.format(
+                "Processed %d chunks, %d blocks around player %s. Replaced %d blocks.",
+                chunksProcessed.get(), blocksProcessed.get(), player.getName().getString(), blocksReplaced.get()
+        ));
     }
 
     public static void replaceAllBlocksInWorld(ServerWorld world) {
@@ -113,57 +154,52 @@ public class BlockUtils {
         int spawnChunkX = spawnPos.getX() >> 4;
         int spawnChunkZ = spawnPos.getZ() >> 4;
 
-        // Process spawn chunks first
-        processChunksInRange(world, spawnChunkX, spawnChunkZ, 16, false);
+        UltimateOriginsUtilityMod.LOGGER.info("Processing spawn chunks in world: {}", world.getRegistryKey());
 
-        // Process chunks around each player
-        for (ServerPlayerEntity player : world.getPlayers()) {
-            int playerChunkX = player.getBlockPos().getX() >> 4;
-            int playerChunkZ = player.getBlockPos().getZ() >> 4;
-            int viewDistance = world.getServer().getPlayerManager().getViewDistance();
+        // Process spawn area
+        AtomicInteger blocksProcessed = new AtomicInteger();
+        AtomicInteger chunksProcessed = new AtomicInteger();
+        AtomicInteger blocksReplaced = new AtomicInteger();
+        int spawnRadius = 8;
 
-            processChunksInRange(world, playerChunkX, playerChunkZ, viewDistance, true);
-        }
-    }
+        for (int dx = -spawnRadius; dx <= spawnRadius; dx++) {
+            for (int dz = -spawnRadius; dz <= spawnRadius; dz++) {
+                int targetChunkX = spawnChunkX + dx;
+                int targetChunkZ = spawnChunkZ + dz;
 
-    private static void processChunksInRange(ServerWorld world, int centerX, int centerZ, int radius, boolean isPlayer) {
-        Set<ChunkPos> processedChunks = new HashSet<>();
-        int replacedCount = 0;
-        int chunksProcessed = 0;
-        int chunksLoaded = 0;
-
-        for (int dx = -radius; dx <= radius; dx++) {
-            for (int dz = -radius; dz <= radius; dz++) {
-                int chunkX = centerX + dx;
-                int chunkZ = centerZ + dz;
-                ChunkPos pos = new ChunkPos(chunkX, chunkZ);
-
-                if (processedChunks.contains(pos)) {
+                if (dx * dx + dz * dz > spawnRadius * spawnRadius) {
                     continue;
                 }
 
-                processedChunks.add(pos);
-                chunksProcessed++;
+                WorldChunk chunk = world.getChunk(targetChunkX, targetChunkZ);
+                if (chunk != null && chunk.getStatus() == ChunkStatus.FULL) {
+                    chunksProcessed.incrementAndGet();
 
-                if (!world.isChunkLoaded(chunkX, chunkZ)) {
-                    continue;
+                    List<BlockPos> positions = new ArrayList<>(chunk.getBlockEntities().keySet());
+                    positions.forEach(pos -> {
+                        blocksProcessed.incrementAndGet();
+                        if (processBlock(world, pos)) {
+                            blocksReplaced.incrementAndGet();
+                        }
+                    });
+
+                    processBlocksInChunk(world, chunk, blocksProcessed, blocksReplaced);
                 }
-
-                chunksLoaded++;
-                WorldChunk chunk = world.getChunk(chunkX, chunkZ);
-                replacedCount += processChunk(world, chunk);
             }
         }
 
-        String location = isPlayer ? "around player" : "in spawn area";
         UltimateOriginsUtilityMod.LOGGER.info(String.format(
-                "Processed %d chunks (%d loaded) %s, replaced %d blocks",
-                chunksProcessed, chunksLoaded, location, replacedCount
+                "Processed %d chunks, %d blocks in spawn area. Replaced %d blocks.",
+                chunksProcessed.get(), blocksProcessed.get(), blocksReplaced.get()
         ));
+
+        // Process player areas
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            replaceAllBlocksAroundPlayer(player);
+        }
     }
 
-    private static int processChunk(ServerWorld world, WorldChunk chunk) {
-        int replacedCount = 0;
+    private static void processBlocksInChunk(ServerWorld world, WorldChunk chunk, AtomicInteger blocksProcessed, AtomicInteger blocksReplaced) {
         int startX = chunk.getPos().getStartX();
         int startZ = chunk.getPos().getStartZ();
         int endX = chunk.getPos().getEndX();
@@ -171,18 +207,37 @@ public class BlockUtils {
         int minY = world.getBottomY();
         int maxY = world.getTopY();
 
-        for (int x = startX; x <= endX; x++) {
-            for (int z = startZ; z <= endZ; z++) {
-                for (int y = minY; y < maxY; y++) {
-                    BlockPos pos = new BlockPos(x, y, z);
-                    if (processBlock(world, pos)) {
-                        replacedCount++;
+        // Focus on target blocks for efficiency
+        Collection<Block> blocksToLookFor = new HashSet<>();
+        for (String blockId : blockMap.keySet()) {
+            try {
+                Block block = Registries.BLOCK.get(new Identifier(blockId));
+                if (block != null) {
+                    blocksToLookFor.add(block);
+                }
+            } catch (Exception e) {
+                UltimateOriginsUtilityMod.LOGGER.error("Invalid block ID in config: " + blockId, e);
+            }
+        }
+
+        // Targeted block scanning
+        if (!blocksToLookFor.isEmpty()) {
+            for (int x = startX; x <= endX; x++) {
+                for (int z = startZ; z <= endZ; z++) {
+                    for (int y = minY; y < maxY; y++) {
+                        BlockPos pos = new BlockPos(x, y, z);
+                        BlockState state = chunk.getBlockState(pos);
+
+                        if (blocksToLookFor.contains(state.getBlock())) {
+                            blocksProcessed.incrementAndGet();
+                            if (processBlock(world, pos)) {
+                                blocksReplaced.incrementAndGet();
+                            }
+                        }
                     }
                 }
             }
         }
-
-        return replacedCount;
     }
 
     private static boolean processBlock(ServerWorld world, BlockPos pos) {
@@ -208,13 +263,17 @@ public class BlockUtils {
             if (oldBe != null) {
                 nbt = oldBe.createNbtWithId();
                 oldBeId = nbt.getString("id");
+                UltimateOriginsUtilityMod.LOGGER.debug("Replacing block entity {} at {} with {}",
+                        oldId, pos, newId);
                 world.removeBlockEntity(pos);
+            } else {
+                UltimateOriginsUtilityMod.LOGGER.debug("Replacing block {} at {} with {}",
+                        oldId, pos, newId);
             }
 
-            // Set new block
-            world.setBlockState(pos, newBlock.getDefaultState());
+            boolean result = world.setBlockState(pos, newBlock.getDefaultState());
 
-            // Restore block entity data if applicable
+            // Restore NBT data
             if (nbt != null) {
                 BlockEntity newBe = world.getBlockEntity(pos);
                 if (newBe != null) {
@@ -227,7 +286,7 @@ public class BlockUtils {
                 }
             }
 
-            return true;
+            return result;
         } catch (Exception e) {
             UltimateOriginsUtilityMod.LOGGER.error(
                     String.format("Failed to replace block at %s: %s -> %s",

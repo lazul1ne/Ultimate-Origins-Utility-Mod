@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.BoolArgumentType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
@@ -42,15 +43,15 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 
 	private void processWorldMigrations(MinecraftServer server) {
 		if (!MigrationConfig.isMigrationEnabled()) {
+			LOGGER.info("Migration is disabled in config, skipping world migrations");
 			return;
 		}
 
 		LOGGER.info("Processing world migrations (Migration enabled in config)");
 		try {
 			for (ServerWorld world : server.getWorlds()) {
-				LOGGER.info("Processing world: {}", world.getRegistryKey().getValue());
+				LOGGER.info("Processing world: {}", world.getRegistryKey());
 				BlockUtils.replaceAllBlocksInWorld(world);
-				//StorageUtils.replaceAllInWorld(world);
 			}
 		} catch (Exception e) {
 			LOGGER.error("Error processing world migrations", e);
@@ -73,6 +74,7 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 
 		try {
 			LOGGER.info("Processing migrations for player: {}", player.getName().getString());
+			// Make sure we process blocks first as they might affect storage/inventory
 			BlockUtils.replaceAllBlocksAroundPlayer(player);
 			StorageUtils.replaceAllAroundPlayer(player);
 			InventoryUtils.replaceAll(player);
@@ -89,6 +91,7 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 							.then(CommandManager.argument("enabled", BoolArgumentType.bool())
 									.executes(context -> {
 										boolean enabled = BoolArgumentType.getBool(context, "enabled");
+										boolean wasEnabled = MigrationConfig.isMigrationEnabled();
 										MigrationConfig.setMigrationEnabled(enabled);
 
 										ServerCommandSource source = context.getSource();
@@ -98,12 +101,35 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 												true
 										);
 
+										// Only process if enabling migration or if it was disabled and now enabled
 										if (enabled) {
 											processWorldMigrations(source.getServer());
 											if (source.isExecutedByPlayer()) {
 												processMigrationForPlayer(source.getPlayer());
 											}
 										}
+
+										return Command.SINGLE_SUCCESS;
+									})
+							)
+							// Add a subcommand to force execution without changing the enabled state
+							.then(CommandManager.literal("run")
+									.executes(context -> {
+										ServerCommandSource source = context.getSource();
+										source.sendFeedback(
+												() -> Text.literal("UO-Utils forcing migration run..."),
+												true
+										);
+
+										processWorldMigrations(source.getServer());
+										if (source.isExecutedByPlayer()) {
+											processMigrationForPlayer(source.getPlayer());
+										}
+
+										source.sendFeedback(
+												() -> Text.literal("UO-Utils migration run completed"),
+												true
+										);
 
 										return Command.SINGLE_SUCCESS;
 									})
@@ -126,6 +152,15 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 			if (MigrationConfig.isMigrationEnabled()) {
 				LOGGER.info("Migration enabled in config, processing on server start");
 				processWorldMigrations(server);
+			}
+		});
+
+		// World load event handler - ensure blocks are processed when worlds are loaded
+		ServerWorldEvents.LOAD.register((server, world) -> {
+			if (MigrationConfig.isMigrationEnabled()) {
+				LOGGER.info("Migration enabled in config, processing newly loaded world: {}",
+						world.getRegistryKey());
+				BlockUtils.replaceAllBlocksInWorld(world);
 			}
 		});
 	}
