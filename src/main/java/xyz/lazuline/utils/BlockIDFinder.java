@@ -1,8 +1,8 @@
 package xyz.lazuline.utils;
 
 import net.minecraft.item.Item;
-import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.registry.Registry;
 import xyz.lazuline.UltimateOriginsUtilityMod;
 
 import java.util.Arrays;
@@ -23,8 +23,8 @@ public class BlockIDFinder {
         UltimateOriginsUtilityMod.LOGGER.info("Searching in " + (TARGET_MOD != null ? "mod: " + TARGET_MOD : "all mods"));
         int count = 0;
 
-        for (Item item : Registries.ITEM) {
-            Identifier id = Registries.ITEM.getId(item);
+        for (Item item : Registry.ITEM) {
+            Identifier id = Registry.ITEM.getId(item);
             String namespace = id.getNamespace();
             String path = id.getPath();
 

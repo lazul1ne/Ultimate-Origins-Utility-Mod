@@ -4,16 +4,14 @@ import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricTagProvider;
 import net.minecraft.item.Item;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.registry.tag.TagKey;
+
+import net.minecraft.tag.TagKey;
 import net.minecraft.util.Identifier;
 
 import java.util.concurrent.CompletableFuture;
 
-public class UoUtilsDataGen implements net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint {
-    @Override
+/*public class UoUtilsDataGen implements net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint {
+   @Override
     public void onInitializeDataGenerator(FabricDataGenerator fabricDataGenerator) {
         FabricDataGenerator.Pack pack = fabricDataGenerator.createPack();
         pack.addProvider((dataOutput, registryLookup) -> new StrippedLogsTagProvider(dataOutput, registryLookup));
@@ -37,4 +35,4 @@ public class UoUtilsDataGen implements net.fabricmc.fabric.api.datagen.v1.DataGe
             }
         }
     }
-}
+}*/

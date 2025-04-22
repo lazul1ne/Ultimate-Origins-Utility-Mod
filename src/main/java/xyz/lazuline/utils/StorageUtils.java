@@ -3,11 +3,11 @@ package xyz.lazuline.utils;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.WorldChunk;
 import xyz.lazuline.UltimateOriginsUtilityMod;
@@ -28,7 +28,7 @@ public class StorageUtils {
 
         UltimateOriginsUtilityMod.LOGGER.info("Starting item replacement with " + mappings.size() + " mappings");
 
-        ServerWorld world = player.getServerWorld();
+        ServerWorld world = (ServerWorld) player.getWorld();
         ServerChunkManager chunkManager = world.getChunkManager();
 
         // Get player's absolute position
@@ -95,7 +95,7 @@ public class StorageUtils {
         for (int slot = 0; slot < inv.size(); slot++) {
             ItemStack stack = inv.getStack(slot);
             if (!stack.isEmpty()) {
-                Identifier oldId = Registries.ITEM.getId(stack.getItem());
+                Identifier oldId = Registry.ITEM.getId(stack.getItem());
                 String newIdStr = mappings.get(oldId.toString());
 
                 if (newIdStr != null) {
@@ -105,7 +105,7 @@ public class StorageUtils {
                     );
 
                     try {
-                        Item newItem = Registries.ITEM.get(new Identifier(newIdStr));
+                        Item newItem = Registry.ITEM.get(new Identifier(newIdStr));
                         if (newItem != null) {
                             ItemStack newStack = new ItemStack(newItem, stack.getCount());
                             // Preserve NBT data if it exists

@@ -8,13 +8,13 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.WorldChunk;
 import xyz.lazuline.UltimateOriginsUtilityMod;
@@ -91,7 +91,7 @@ public class BlockUtils {
             return;
         }
 
-        ServerWorld world = player.getServerWorld();
+        ServerWorld world = (ServerWorld) player.getWorld();
 
         // Player position calculations
         int playerX = player.getBlockPos().getX();
@@ -211,7 +211,7 @@ public class BlockUtils {
         Collection<Block> blocksToLookFor = new HashSet<>();
         for (String blockId : blockMap.keySet()) {
             try {
-                Block block = Registries.BLOCK.get(new Identifier(blockId));
+                Block block = Registry.BLOCK.get(new Identifier(blockId));
                 if (block != null) {
                     blocksToLookFor.add(block);
                 }
@@ -242,14 +242,14 @@ public class BlockUtils {
 
     private static boolean processBlock(ServerWorld world, BlockPos pos) {
         BlockState state = world.getBlockState(pos);
-        String oldId = Registries.BLOCK.getId(state.getBlock()).toString();
+        String oldId = Registry.BLOCK.getId(state.getBlock()).toString();
         String newId = blockMap.get(oldId);
 
         if (newId == null) {
             return false;
         }
 
-        Block newBlock = Registries.BLOCK.get(new Identifier(newId));
+        Block newBlock = Registry.BLOCK.get(new Identifier(newId));
         if (newBlock == null || newBlock == state.getBlock()) {
             return false;
         }

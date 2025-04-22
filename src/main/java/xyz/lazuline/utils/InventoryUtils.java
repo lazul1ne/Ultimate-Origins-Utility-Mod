@@ -5,9 +5,9 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.registry.Registry;
 import xyz.lazuline.UltimateOriginsUtilityMod;
 
 import java.io.File;
@@ -70,10 +70,10 @@ public class InventoryUtils {
         for (int i = 0; i < player.getInventory().size(); i++) {
             ItemStack stack = player.getInventory().getStack(i);
             if (!stack.isEmpty()) {
-                Identifier oldId = Registries.ITEM.getId(stack.getItem());
+                Identifier oldId = Registry.ITEM.getId(stack.getItem());
                 String newIdStr = itemMap.get(oldId.toString());
                 if (newIdStr != null) {
-                    Item newItem = Registries.ITEM.get(new Identifier(newIdStr));
+                    Item newItem = Registry.ITEM.get(new Identifier(newIdStr));
                     if (newItem == null) continue; // Skip invalid items
                     ItemStack newStack = new ItemStack(newItem, stack.getCount());
                     if (stack.hasNbt()) newStack.setNbt(stack.getNbt().copy());

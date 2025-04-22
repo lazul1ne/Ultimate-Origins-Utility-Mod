@@ -104,9 +104,9 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 
 										ServerCommandSource source = context.getSource();
 										source.sendFeedback(
-												() -> Text.literal("UO-Utils migration " +
-														(enabled ? "enabled" : "disabled")),
-												true
+												(Text.literal("UO-Utils migration " +
+														(enabled ? "enabled" : "disabled"))),
+														true
 										);
 
 										// Only process if enabling migration or if it was disabled and now enabled
@@ -125,7 +125,7 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 									.executes(context -> {
 										ServerCommandSource source = context.getSource();
 										source.sendFeedback(
-												() -> Text.literal("UO-Utils forcing migration run..."),
+												(Text.literal("UO-Utils forcing migration run...")),
 												true
 										);
 
@@ -135,7 +135,7 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 										}
 
 										source.sendFeedback(
-												() -> Text.literal("UO-Utils migration run completed"),
+												(Text.literal("UO-Utils migration run completed")),
 												true
 										);
 
