@@ -249,12 +249,12 @@ public class BlockUtils {
         String oldId = Registries.BLOCK.getId(state.getBlock()).toString();
         String newId = blockMap.get(oldId);
 
-        /*if (newId == null) {
+        if (newId == null) {
             if (oldId.contains("charm:")) {
                 UltimateOriginsUtilityMod.LOGGER.debug("No mapping found for Charm block: {}", oldId);
             }
             return false;
-        }*/
+        }
 
         Block newBlock = Registries.BLOCK.get(new Identifier(newId));
         if (newBlock == null || newBlock == state.getBlock()) {
