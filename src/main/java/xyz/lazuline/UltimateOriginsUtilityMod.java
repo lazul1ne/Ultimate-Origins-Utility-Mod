@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.block.Block;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -131,6 +132,7 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 
 										processWorldMigrations(source.getServer());
 										if (source.isExecutedByPlayer()) {
+											BlockUtils.loadConfig();
 											processMigrationForPlayer(source.getPlayer());
 										}
 
