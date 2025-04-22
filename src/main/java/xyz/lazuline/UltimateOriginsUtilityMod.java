@@ -113,6 +113,7 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 										if (enabled) {
 											processWorldMigrations(source.getServer());
 											if (source.isExecutedByPlayer()) {
+												BlockUtils.loadConfig();
 												processMigrationForPlayer(source.getPlayer());
 											}
 										}

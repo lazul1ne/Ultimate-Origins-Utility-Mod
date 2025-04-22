@@ -11,6 +11,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.state.property.Property;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -67,7 +68,8 @@ public class BlockUtils {
 
     private static void loadExistingConfig(File file) {
         try (FileReader reader = new FileReader(file)) {
-            Type mapType = new TypeToken<Map<String, String>>() {}.getType();
+            Type mapType = new TypeToken<Map<String, String>>() {
+            }.getType();
             blockMap = GSON.fromJson(reader, mapType);
 
             if (blockMap == null) {
@@ -123,13 +125,16 @@ public class BlockUtils {
                 if (chunk != null && chunk.getStatus() == ChunkStatus.FULL) {
                     chunksProcessed.incrementAndGet();
 
+                    // Create a copy of block entity positions to avoid concurrent modification
+                    List<BlockPos> blockEntityPositions = new ArrayList<>(chunk.getBlockEntities().keySet());
+
                     // Process block entities first
-                    chunk.getBlockEntities().forEach((pos, be) -> {
+                    for (BlockPos pos : blockEntityPositions) {
                         blocksProcessed.incrementAndGet();
                         if (processBlock(world, pos)) {
                             blocksReplaced.incrementAndGet();
                         }
-                    });
+                    }
 
                     // Scan chunk for target blocks
                     processBlocksInChunk(world, chunk, blocksProcessed, blocksReplaced);
@@ -207,7 +212,7 @@ public class BlockUtils {
         int minY = world.getBottomY();
         int maxY = world.getTopY();
 
-        // Focus on target blocks for efficiency
+        // Focus on the blocks in the json
         Collection<Block> blocksToLookFor = new HashSet<>();
         for (String blockId : blockMap.keySet()) {
             try {
@@ -220,7 +225,7 @@ public class BlockUtils {
             }
         }
 
-        // Targeted block scanning
+
         if (!blocksToLookFor.isEmpty()) {
             for (int x = startX; x <= endX; x++) {
                 for (int z = startZ; z <= endZ; z++) {
@@ -239,13 +244,15 @@ public class BlockUtils {
             }
         }
     }
-
     private static boolean processBlock(ServerWorld world, BlockPos pos) {
         BlockState state = world.getBlockState(pos);
         String oldId = Registry.BLOCK.getId(state.getBlock()).toString();
         String newId = blockMap.get(oldId);
 
         if (newId == null) {
+            if (oldId.contains("charm:")) {
+                UltimateOriginsUtilityMod.LOGGER.debug("No mapping found for Charm block: {}", oldId);
+            }
             return false;
         }
 
@@ -266,12 +273,17 @@ public class BlockUtils {
                 UltimateOriginsUtilityMod.LOGGER.debug("Replacing block entity {} at {} with {}",
                         oldId, pos, newId);
                 world.removeBlockEntity(pos);
-            } else {
-                UltimateOriginsUtilityMod.LOGGER.debug("Replacing block {} at {} with {}",
-                        oldId, pos, newId);
             }
 
-            boolean result = world.setBlockState(pos, newBlock.getDefaultState());
+            // Create new block state with preserved properties
+            BlockState newState = newBlock.getDefaultState();
+            for (Property<?> property : state.getProperties()) {
+                if (newState.contains(property)) {
+                    newState = copyProperty(state, newState, property);
+                }
+            }
+
+            boolean result = world.setBlockState(pos, newState);
 
             // Restore NBT data
             if (nbt != null) {
@@ -294,5 +306,10 @@ public class BlockUtils {
             );
             return false;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Comparable<T>> BlockState copyProperty(BlockState fromState, BlockState toState, Property<T> property) {
+        return toState.with(property, fromState.get(property));
     }
 }
