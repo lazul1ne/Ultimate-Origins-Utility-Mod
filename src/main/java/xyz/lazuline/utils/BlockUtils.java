@@ -49,9 +49,9 @@ public class BlockUtils {
             }
 
             Map<String, String> sample = new HashMap<>();
-            // Default mappings example
-            sample.put("modid:modded_chest", "minecraft:chest");
-            sample.put("minecraft:trapped_chest", "minecraft:chest");
+
+            sample.put("charm:azalea_chest", "minecraft:chest");
+            sample.put("charm:azalea_barrel", "minecraft:barrel");
 
             try (FileWriter writer = new FileWriter(file)) {
                 GSON.toJson(sample, writer);

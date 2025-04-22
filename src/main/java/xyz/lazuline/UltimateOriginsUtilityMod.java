@@ -27,13 +27,16 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 
 		try {
 			// Load configurations first
-			MigrationConfig.load(); // Initialize migration config
+			UOConfig.load(); // Initialize migration config
 			BlockUtils.loadConfig();
 			InventoryUtils.loadConfig();
 
 			// Register command and event handlers
 			registerCommands();
 			registerEventHandlers();
+			//new BlockIDFinder();
+
+			startBlockIDFinder();
 
 			LOGGER.info(MOD_ID + " initialization completed successfully");
 		} catch (Exception e) {
@@ -42,7 +45,7 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 	}
 
 	private void processWorldMigrations(MinecraftServer server) {
-		if (!MigrationConfig.isMigrationEnabled()) {
+		if (!UOConfig.isMigrationEnabled()) {
 			LOGGER.info("Migration is disabled in config, skipping world migrations");
 			return;
 		}
@@ -57,11 +60,16 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 			LOGGER.error("Error processing world migrations", e);
 		}
 	}
-
+	public void startBlockIDFinder(){
+		if (UOConfig.isBlockIdFinderEnabled()) {
+			BlockIDFinder.register();
+		}
+	}
 	private void processMigrationForPlayer(ServerPlayerEntity player) {
-		if (!MigrationConfig.isMigrationEnabled()) {
+		if (!UOConfig.isMigrationEnabled()) {
 			return;
 		}
+
 
 		player.sendMessage(Text.literal(
 				"§6[UO-Utils] §eMigration Feature Active:\n" +
@@ -91,8 +99,8 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 							.then(CommandManager.argument("enabled", BoolArgumentType.bool())
 									.executes(context -> {
 										boolean enabled = BoolArgumentType.getBool(context, "enabled");
-										boolean wasEnabled = MigrationConfig.isMigrationEnabled();
-										MigrationConfig.setMigrationEnabled(enabled);
+										boolean wasEnabled = UOConfig.isMigrationEnabled();
+										UOConfig.setMigrationEnabled(enabled);
 
 										ServerCommandSource source = context.getSource();
 										source.sendFeedback(
@@ -142,14 +150,14 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 	private void registerEventHandlers() {
 		// Player join event handler
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-			if (MigrationConfig.isMigrationEnabled()) {
+			if (UOConfig.isMigrationEnabled()) {
 				processMigrationForPlayer(handler.player);
 			}
 		});
 
 		// Server start event handler
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			if (MigrationConfig.isMigrationEnabled()) {
+			if (UOConfig.isMigrationEnabled()) {
 				LOGGER.info("Migration enabled in config, processing on server start");
 				processWorldMigrations(server);
 			}
@@ -157,7 +165,7 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 
 		// World load event handler - ensure blocks are processed when worlds are loaded
 		ServerWorldEvents.LOAD.register((server, world) -> {
-			if (MigrationConfig.isMigrationEnabled()) {
+			if (UOConfig.isMigrationEnabled()) {
 				LOGGER.info("Migration enabled in config, processing newly loaded world: {}",
 						world.getRegistryKey());
 				BlockUtils.replaceAllBlocksInWorld(world);

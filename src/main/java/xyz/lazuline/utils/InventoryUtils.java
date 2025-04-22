@@ -33,10 +33,10 @@ public class InventoryUtils {
                 if (configDir != null && !configDir.exists()) {
                     configDir.mkdirs();
                 }
-                // Write placeholder so it doesn't crash
+                // Write the placeholder so it doesn't crash
                 Map<String, String> sample = new HashMap<>();
                 sample.put("minecraft:bedrock", "minecraft:dirt");
-                sample.put("minecraft:stick", "minecraft:stick");
+                sample.put("minecraft:debug_stick", "minecraft:stick");
                 try (FileWriter writer = new FileWriter(file)) {
                     writer.write(GSON.toJson(sample));
                 }
