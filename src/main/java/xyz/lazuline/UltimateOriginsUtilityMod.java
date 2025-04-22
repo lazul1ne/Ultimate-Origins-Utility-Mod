@@ -84,6 +84,8 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 		try {
 			LOGGER.info("Processing migrations for player: {}", player.getName().getString());
 			// Make sure we process blocks first as they might affect storage/inventory
+			InventoryUtils.loadConfig();
+			BlockUtils.loadConfig();
 			BlockUtils.replaceAllBlocksAroundPlayer(player);
 			StorageUtils.replaceAllAroundPlayer(player);
 			InventoryUtils.replaceAll(player);
@@ -114,6 +116,8 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 										if (enabled) {
 											processWorldMigrations(source.getServer());
 											if (source.isExecutedByPlayer()) {
+												InventoryUtils.loadConfig();
+												BlockUtils.loadConfig();
 												processMigrationForPlayer(source.getPlayer());
 											}
 										}
@@ -132,6 +136,7 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 
 										processWorldMigrations(source.getServer());
 										if (source.isExecutedByPlayer()) {
+											InventoryUtils.loadConfig();
 											BlockUtils.loadConfig();
 											processMigrationForPlayer(source.getPlayer());
 										}
@@ -153,6 +158,8 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 		// Player join event handler
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			if (UOConfig.isMigrationEnabled()) {
+				InventoryUtils.loadConfig();
+				BlockUtils.loadConfig();
 				processMigrationForPlayer(handler.player);
 			}
 		});
@@ -170,6 +177,8 @@ public class UltimateOriginsUtilityMod implements ModInitializer {
 			if (UOConfig.isMigrationEnabled()) {
 				LOGGER.info("Migration enabled in config, processing newly loaded world: {}",
 						world.getRegistryKey());
+				InventoryUtils.loadConfig();
+				BlockUtils.loadConfig();
 				BlockUtils.replaceAllBlocksInWorld(world);
 			}
 		});
